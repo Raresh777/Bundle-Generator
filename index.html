@@ -30,6 +30,20 @@
         th {
             background-color: #f2f2f2;
         }
+
+        .bar {
+            height: 20px;
+            width: 100%;
+            background: linear-gradient(90deg, red, yellow, green);
+            border: 1px solid #aaa;
+            border-radius: 4px;
+        }
+
+        .fill {
+            height: 100%;
+            background: linear-gradient(90deg, blue, purple, red);
+            border-radius: 4px;
+        }
     </style>
 </head>
 
@@ -62,61 +76,78 @@
                 return;
             }
 
-            Papa.parse(fileInput.files[0], {
-                complete: function(results) {
-                    const jsonData = results.data;
-                    
-                    const tableBody = document.getElementById('tableBody');
-                    tableBody.innerHTML = ''; // Clear previous rows
+            const tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = '';
 
+            Papa.parse(fileInput.files[0], {
+                header: true,
+                dynamicTyping: true,
+                complete: function(results) {
+                    const data = results.data;
                     const dailyCount = {};
                     const weeklyCount = {};
 
-                    // Skip the header row and parse data
-                    for(let i = 1; i < jsonData.length; i++) {
-                        const row = jsonData[i];
-                        const date = new Date(row[10]);
-                        const dateString = date.toISOString().split('T')[0];
+                    for (let i = 0; i < data.length; i++) {
+                        const date = new Date(data[i]["K"]);
+                        const formattedDate = date.toISOString().split("T")[0];
                         
-                        dailyCount[dateString] = (dailyCount[dateString] || 0) + 1;
-
-                        const weekStart = new Date(date);
-                        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-                        const weekEnd = new Date(weekStart);
-                        weekEnd.setDate(weekEnd.getDate() + 6);
-                        const weekRange = `${weekStart.toISOString().split('T')[0]} - ${weekEnd.toISOString().split('T')[0]}`;
+                        if (!dailyCount[formattedDate]) {
+                            dailyCount[formattedDate] = 0;
+                        }
                         
-                        weeklyCount[weekRange] = (weeklyCount[weekRange] || 0) + 1;
+                        dailyCount[formattedDate]++;
                     }
 
-                    // Render the data
-                    for(const week in weeklyCount) {
+                    for (const day in dailyCount) {
+                        const date = new Date(day);
+                        const weekStart = new Date(date);
+                        weekStart.setDate(date.getDate() - date.getDay());
+                        const weekEnd = new Date(weekStart);
+                        weekEnd.setDate(weekStart.getDate() + 6);
+
+                        const weekRange = `${weekStart.toISOString().split("T")[0]} - ${weekEnd.toISOString().split("T")[0]}`;
+
+                        if (!weeklyCount[weekRange]) {
+                            weeklyCount[weekRange] = 0;
+                        }
+
+                        weeklyCount[weekRange] += dailyCount[day];
+                    }
+
+                    for (const week in weeklyCount) {
+                        const friendlyDateRange = formatFriendlyDateRange(week);
                         const visualRepr = getVisualRepresentation(weeklyCount[week]);
 
-                        // Add rows to the table
                         const tr = document.createElement('tr');
                         tr.innerHTML = `
-                            <td>${week}</td>
+                            <td>${friendlyDateRange}</td>
                             <td>${weeklyCount[week]}</td>
                             <td>${visualRepr}</td>
                         `;
                         tableBody.appendChild(tr);
                     }
-
-                    alert('Data processed successfully!');
                 }
             });
         }
 
+        function formatFriendlyDateRange(dateRange) {
+            const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            const [start, end] = dateRange.split(" - ");
+            const startDate = new Date(start);
+            const endDate = new Date(end);
+
+            return `${months[startDate.getMonth()]} ${startDate.getDate()} - ${months[endDate.getMonth()]} ${endDate.getDate()}`;
+        }
+
         function getVisualRepresentation(ads) {
-            let representation = '';
-            const colors = ['🔴', '🟡', '🟢', '🔵', '🟣', '🔶'];
-            for(let i = 0; i < colors.length; i++) {
-                if(ads >= (i + 1) * 10) {
-                    representation += colors[i];
-                }
-            }
-            return representation;
+            const maxAds = 100;
+            const percentage = (ads / maxAds) * 100;
+
+            return `
+                <div class="bar">
+                    <div class="fill" style="width: ${percentage}%;"></div>
+                </div>
+            `;
         }
     </script>
 </body>
