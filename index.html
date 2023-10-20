@@ -64,47 +64,44 @@
                 dynamicTyping: true,
                 complete: function(results) {
                     const data = results.data;
-                    const dailyCount = {};
-                    const weeklyCount = {};
-
-                    for (let entry of data) {
-                        const date = new Date(entry['K']);
-                        const formattedDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-                        
-                        if (!dailyCount[formattedDate]) {
-                            dailyCount[formattedDate] = 0;
-                        }
-
-                        dailyCount[formattedDate]++;
-
-                        const weekStartDate = new Date(date);
-                        weekStartDate.setDate(weekStartDate.getDate() - weekStartDate.getDay());
-                        const weekEndDate = new Date(weekStartDate);
-                        weekEndDate.setDate(weekEndDate.getDate() + 6);
-                        const weekKey = `${weekStartDate.toISOString().split('T')[0]} - ${weekEndDate.toISOString().split('T')[0]}`;
-
-                        if (!weeklyCount[weekKey]) {
-                            weeklyCount[weekKey] = 0;
-                        }
-                        weeklyCount[weekKey]++;
-                    }
-
-                    const tableBody = document.getElementById('tableBody');
-                    tableBody.innerHTML = '';
-
-                    for (let week in weeklyCount) {
-                        const tr = document.createElement('tr');
-                        const friendlyWeek = formatWeek(week);
-                        const visualRepresentation = getVisualRepresentation(weeklyCount[week]);
-                        tr.innerHTML = `
-                            <td>${friendlyWeek}</td>
-                            <td>${weeklyCount[week]}</td>
-                            <td>${visualRepresentation}</td>
-                        `;
-                        tableBody.appendChild(tr);
-                    }
+                    processData(data);
                 }
             });
+        }
+
+        function processData(data) {
+            const dailyCount = {};
+            for (let entry of data) {
+                const date = new Date(entry['K']);
+                const formattedDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                dailyCount[formattedDate] = (dailyCount[formattedDate] || 0) + 1;
+            }
+
+            const weeklyCount = {};
+            for (let date in dailyCount) {
+                const weekStart = getWeekStart(new Date(date));
+                const weekEnd = new Date(weekStart);
+                weekEnd.setDate(weekStart.getDate() + 6);
+                const weekKey = `${weekStart.toISOString().split('T')[0]} - ${weekEnd.toISOString().split('T')[0]}`;
+                weeklyCount[weekKey] = (weeklyCount[weekKey] || 0) + dailyCount[date];
+            }
+
+            const tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = '';
+
+            for (let week in weeklyCount) {
+                const tr = document.createElement('tr');
+                const friendlyWeek = formatWeek(week);
+                const visualRepresentation = getVisualRepresentation(weeklyCount[week]);
+                tr.innerHTML = `<td>${friendlyWeek}</td><td>${weeklyCount[week]}</td><td>${visualRepresentation}</td>`;
+                tableBody.appendChild(tr);
+            }
+        }
+
+        function getWeekStart(date) {
+            const result = new Date(date);
+            result.setDate(result.getDate() - result.getDay());
+            return result;
         }
 
         function formatWeek(week) {
@@ -117,7 +114,7 @@
 
         function getVisualRepresentation(count) {
             const dots = ['🔴', '🟡', '🟢', '🔵', '🟣', '🔶'];
-            const maxCount = 60;  // Assume maximum ads uploaded in a week is 60 for visualization purposes
+            const maxCount = 60;
             const dotCount = Math.ceil((count / maxCount) * dots.length);
             return dots.slice(0, dotCount).join('');
         }
