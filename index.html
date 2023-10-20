@@ -7,7 +7,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ads Data Visualization</title>
     <style>
-        /* Your previous styles */
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
@@ -43,7 +42,6 @@
     <table>
         <thead>
             <tr>
-                <th>Date</th>
                 <th>Week Date Range</th>
                 <th>Ads Uploaded</th>
                 <th>Visual Representation</th>
@@ -66,24 +64,52 @@
                     const tableBody = document.getElementById('tableBody');
                     tableBody.innerHTML = ''; // Clear previous rows
 
-                    // Skip the header row
+                    const dailyCount = {};
+                    const weeklyCount = {};
+
+                    // Skip the header row and parse data
                     for(let i = 1; i < jsonData.length; i++) {
                         const row = jsonData[i];
-                        const publisher = row[0]; // Assuming column A is the publisher
-                        const date = row[10];     // Assuming column K is the date
+                        const date = new Date(row[10]);
+                        const dateString = date.toISOString().split('T')[0];
                         
+                        dailyCount[dateString] = (dailyCount[dateString] || 0) + 1;
+
+                        const weekStart = new Date(date);
+                        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+                        const weekEnd = new Date(weekStart);
+                        weekEnd.setDate(weekEnd.getDate() + 6);
+                        const weekRange = `${weekStart.toISOString().split('T')[0]} - ${weekEnd.toISOString().split('T')[0]}`;
+                        
+                        weeklyCount[weekRange] = (weeklyCount[weekRange] || 0) + 1;
+                    }
+
+                    // Render the data
+                    for(const week in weeklyCount) {
+                        const visualRepr = getVisualRepresentation(weeklyCount[week]);
+
                         // Add rows to the table
                         const tr = document.createElement('tr');
                         tr.innerHTML = `
-                            <td>${date}</td>
-                            <td>${publisher}</td>
-                            <td></td>
-                            <td></td>
+                            <td>${week}</td>
+                            <td>${weeklyCount[week]}</td>
+                            <td>${visualRepr}</td>
                         `;
                         tableBody.appendChild(tr);
                     }
                 }
             });
+        }
+
+        function getVisualRepresentation(ads) {
+            let representation = '';
+            const colors = ['🔴', '🟡', '🟢', '🔵', '🟣', '🔶'];
+            for(let i = 0; i < colors.length; i++) {
+                if(ads >= (i + 1) * 10) {
+                    representation += colors[i];
+                }
+            }
+            return representation;
         }
     </script>
 </body>
