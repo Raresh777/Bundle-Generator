@@ -1,124 +1,114 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ads Data Visualization</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
         }
-
-        h1 {
-            text-align: center;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
         table, th, td {
             border: 1px solid black;
-            padding: 10px;
-            text-align: center;
+            border-collapse: collapse;
         }
-
-        th {
-            background-color: #f2f2f2;
+        th, td {
+            padding: 8px;
+            text-align: left;
         }
     </style>
 </head>
-
 <body>
-    <h1>Ads Data Visualization</h1>
-    <input type="file" id="upload" accept=".csv">
-    <button onclick="processFile()">Process Data</button>
-    <br><br>
-    <table>
-        <thead>
-            <tr>
-                <th>Week Date Range</th>
-                <th>Ads Uploaded</th>
-                <th>Visual Representation</th>
-            </tr>
-        </thead>
-        <tbody id="tableBody">
-        </tbody>
-    </table>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
-    <script>
-        function processFile() {
-            const fileInput = document.getElementById('upload');
-            if (!fileInput.files.length) {
-                alert('Please select a CSV file first.');
-                return;
-            }
+<h2>Ads Data Visualization</h2>
 
-            Papa.parse(fileInput.files[0], {
-                header: true,
-                dynamicTyping: true,
-                complete: function(results) {
-                    const data = results.data;
-                    processData(data);
+<input type="file" id="csvFileInput">
+<button onclick="processData()">Process Data</button>
+
+<table id="resultsTable">
+    <thead>
+        <tr>
+            <th>Week Date Range</th>
+            <th>Ads Uploaded</th>
+            <th>Visual Representation</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+<script>
+    function processData() {
+        const fileInput = document.getElementById('csvFileInput');
+        const file = fileInput.files[0];
+
+        if (!file) {
+            alert('Please select a CSV file first.');
+            return;
+        }
+
+        Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            complete: function(results) {
+                const data = results.data;
+                const adsCountByDate = {};
+
+                for (const row of data) {
+                    const date = row['K'];
+                    if (date) {
+                        adsCountByDate[date] = (adsCountByDate[date] || 0) + 1;
+                    }
                 }
-            });
-        }
 
-        function processData(data) {
-            const dailyCount = {};
-            for (let entry of data) {
-                const date = new Date(entry['K']);
-                const formattedDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-                dailyCount[formattedDate] = (dailyCount[formattedDate] || 0) + 1;
+                displayResults(adsCountByDate);
+            }
+        });
+    }
+
+    function displayResults(data) {
+        const tableBody = document.getElementById('resultsTable').querySelector('tbody');
+        tableBody.innerHTML = ''; // clear existing rows
+
+        const sortedDates = Object.keys(data).sort((a, b) => new Date(a) - new Date(b));
+
+        for (let i = 0; i < sortedDates.length; i += 7) {
+            const weekStart = new Date(sortedDates[i]);
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+
+            const formattedWeekStart = formatDate(weekStart);
+            const formattedWeekEnd = formatDate(weekEnd);
+
+            let adsUploadedThisWeek = 0;
+            for (let j = 0; j < 7 && i + j < sortedDates.length; j++) {
+                adsUploadedThisWeek += data[sortedDates[i + j]];
             }
 
-            const weeklyCount = {};
-            for (let date in dailyCount) {
-                const weekStart = getWeekStart(new Date(date));
-                const weekEnd = new Date(weekStart);
-                weekEnd.setDate(weekStart.getDate() + 6);
-                const weekKey = `${weekStart.toISOString().split('T')[0]} - ${weekEnd.toISOString().split('T')[0]}`;
-                weeklyCount[weekKey] = (weeklyCount[weekKey] || 0) + dailyCount[date];
-            }
+            const visualRepresentation = getVisualRepresentation(adsUploadedThisWeek);
 
-            const tableBody = document.getElementById('tableBody');
-            tableBody.innerHTML = '';
-
-            for (let week in weeklyCount) {
-                const tr = document.createElement('tr');
-                const friendlyWeek = formatWeek(week);
-                const visualRepresentation = getVisualRepresentation(weeklyCount[week]);
-                tr.innerHTML = `<td>${friendlyWeek}</td><td>${weeklyCount[week]}</td><td>${visualRepresentation}</td>`;
-                tableBody.appendChild(tr);
-            }
+            const row = tableBody.insertRow();
+            row.insertCell().textContent = `${formattedWeekStart} - ${formattedWeekEnd}`;
+            row.insertCell().textContent = adsUploadedThisWeek;
+            row.insertCell().innerHTML = visualRepresentation;
         }
+    }
 
-        function getWeekStart(date) {
-            const result = new Date(date);
-            result.setDate(result.getDate() - result.getDay());
-            return result;
-        }
+    function formatDate(date) {
+        const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        return `${months[date.getMonth()]} ${date.getDate()}`;
+    }
 
-        function formatWeek(week) {
-            const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-            const [start, end] = week.split(' - ');
-            const startDate = new Date(start);
-            const endDate = new Date(end);
-            return `${months[startDate.getMonth()]} ${startDate.getDate()} - ${months[endDate.getMonth()]} ${endDate.getDate()}`;
+    function getVisualRepresentation(count) {
+        const thresholds = [10, 20, 30, 40, 50];
+        const colors = ['🔴', '🟡', '🟢', '🔵', '🟣', '🔶'];
+        let representation = '';
+        for (const threshold of thresholds) {
+            if (count > threshold) representation += colors[thresholds.indexOf(threshold)];
         }
+        return representation;
+    }
+</script>
 
-        function getVisualRepresentation(count) {
-            const dots = ['🔴', '🟡', '🟢', '🔵', '🟣', '🔶'];
-            const maxCount = 60;
-            const dotCount = Math.ceil((count / maxCount) * dots.length);
-            return dots.slice(0, dotCount).join('');
-        }
-    </script>
 </body>
-
 </html>
