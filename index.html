@@ -25,12 +25,24 @@
 <input type="file" id="csvFileInput">
 <button onclick="processData()">Process Data</button>
 
-<table id="resultsTable">
+<h3>Weekly Breakdown</h3>
+<table id="weeklyResultsTable">
     <thead>
         <tr>
             <th>Week Date Range</th>
             <th>Ads Uploaded</th>
             <th>Visual Representation</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<h3>Daily Breakdown</h3>
+<table id="dailyResultsTable">
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>Ads Uploaded</th>
         </tr>
     </thead>
     <tbody></tbody>
@@ -52,8 +64,8 @@
             skipEmptyLines: true,
             complete: function(results) {
                 const data = results.data;
-                const adsCountByDate = {};
 
+                let adsCountByDate = {};
                 for (const row of data) {
                     const date = row['K'];
                     if (date) {
@@ -61,14 +73,27 @@
                     }
                 }
 
-                displayResults(adsCountByDate);
+                displayDailyResults(adsCountByDate);
+                displayWeeklyResults(adsCountByDate);
             }
         });
     }
 
-    function displayResults(data) {
-        const tableBody = document.getElementById('resultsTable').querySelector('tbody');
-        tableBody.innerHTML = ''; // clear existing rows
+    function displayDailyResults(data) {
+        const tableBody = document.getElementById('dailyResultsTable').querySelector('tbody');
+        tableBody.innerHTML = '';
+
+        const sortedDates = Object.keys(data).sort((a, b) => new Date(a) - new Date(b));
+        for (const date of sortedDates) {
+            const row = tableBody.insertRow();
+            row.insertCell().textContent = formatDate(new Date(date));
+            row.insertCell().textContent = data[date];
+        }
+    }
+
+    function displayWeeklyResults(data) {
+        const tableBody = document.getElementById('weeklyResultsTable').querySelector('tbody');
+        tableBody.innerHTML = '';
 
         const sortedDates = Object.keys(data).sort((a, b) => new Date(a) - new Date(b));
 
@@ -77,18 +102,14 @@
             const weekEnd = new Date(weekStart);
             weekEnd.setDate(weekEnd.getDate() + 6);
 
-            const formattedWeekStart = formatDate(weekStart);
-            const formattedWeekEnd = formatDate(weekEnd);
-
             let adsUploadedThisWeek = 0;
             for (let j = 0; j < 7 && i + j < sortedDates.length; j++) {
                 adsUploadedThisWeek += data[sortedDates[i + j]];
             }
 
             const visualRepresentation = getVisualRepresentation(adsUploadedThisWeek);
-
             const row = tableBody.insertRow();
-            row.insertCell().textContent = `${formattedWeekStart} - ${formattedWeekEnd}`;
+            row.insertCell().textContent = `${formatDate(weekStart)} - ${formatDate(weekEnd)}`;
             row.insertCell().textContent = adsUploadedThisWeek;
             row.insertCell().innerHTML = visualRepresentation;
         }
@@ -100,11 +121,10 @@
     }
 
     function getVisualRepresentation(count) {
-        const thresholds = [10, 20, 30, 40, 50];
         const colors = ['🔴', '🟡', '🟢', '🔵', '🟣', '🔶'];
         let representation = '';
-        for (const threshold of thresholds) {
-            if (count > threshold) representation += colors[thresholds.indexOf(threshold)];
+        for (let i = 0; i < count && i < colors.length; i++) {
+            representation += colors[i];
         }
         return representation;
     }
