@@ -30,30 +30,14 @@
         th {
             background-color: #f2f2f2;
         }
-
-        .bar {
-            height: 20px;
-            width: 100%;
-            background: linear-gradient(90deg, red, yellow, green);
-            border: 1px solid #aaa;
-            border-radius: 4px;
-        }
-
-        .fill {
-            height: 100%;
-            background: linear-gradient(90deg, blue, purple, red);
-            border-radius: 4px;
-        }
     </style>
 </head>
 
 <body>
     <h1>Ads Data Visualization</h1>
-
     <input type="file" id="upload" accept=".csv">
     <button onclick="processFile()">Process Data</button>
     <br><br>
-
     <table>
         <thead>
             <tr>
@@ -63,7 +47,6 @@
             </tr>
         </thead>
         <tbody id="tableBody">
-            <!-- Rows will be added here dynamically -->
         </tbody>
     </table>
 
@@ -76,9 +59,6 @@
                 return;
             }
 
-            const tableBody = document.getElementById('tableBody');
-            tableBody.innerHTML = '';
-
             Papa.parse(fileInput.files[0], {
                 header: true,
                 dynamicTyping: true,
@@ -87,42 +67,39 @@
                     const dailyCount = {};
                     const weeklyCount = {};
 
-                    for (let i = 0; i < data.length; i++) {
-                        const date = new Date(data[i]["K"]);
-                        const formattedDate = date.toISOString().split("T")[0];
+                    for (let entry of data) {
+                        const date = new Date(entry['K']);
+                        const formattedDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
                         
                         if (!dailyCount[formattedDate]) {
                             dailyCount[formattedDate] = 0;
                         }
-                        
+
                         dailyCount[formattedDate]++;
-                    }
 
-                    for (const day in dailyCount) {
-                        const date = new Date(day);
-                        const weekStart = new Date(date);
-                        weekStart.setDate(date.getDate() - date.getDay());
-                        const weekEnd = new Date(weekStart);
-                        weekEnd.setDate(weekStart.getDate() + 6);
+                        const weekStartDate = new Date(date);
+                        weekStartDate.setDate(weekStartDate.getDate() - weekStartDate.getDay());
+                        const weekEndDate = new Date(weekStartDate);
+                        weekEndDate.setDate(weekEndDate.getDate() + 6);
+                        const weekKey = `${weekStartDate.toISOString().split('T')[0]} - ${weekEndDate.toISOString().split('T')[0]}`;
 
-                        const weekRange = `${weekStart.toISOString().split("T")[0]} - ${weekEnd.toISOString().split("T")[0]}`;
-
-                        if (!weeklyCount[weekRange]) {
-                            weeklyCount[weekRange] = 0;
+                        if (!weeklyCount[weekKey]) {
+                            weeklyCount[weekKey] = 0;
                         }
-
-                        weeklyCount[weekRange] += dailyCount[day];
+                        weeklyCount[weekKey]++;
                     }
 
-                    for (const week in weeklyCount) {
-                        const friendlyDateRange = formatFriendlyDateRange(week);
-                        const visualRepr = getVisualRepresentation(weeklyCount[week]);
+                    const tableBody = document.getElementById('tableBody');
+                    tableBody.innerHTML = '';
 
+                    for (let week in weeklyCount) {
                         const tr = document.createElement('tr');
+                        const friendlyWeek = formatWeek(week);
+                        const visualRepresentation = getVisualRepresentation(weeklyCount[week]);
                         tr.innerHTML = `
-                            <td>${friendlyDateRange}</td>
+                            <td>${friendlyWeek}</td>
                             <td>${weeklyCount[week]}</td>
-                            <td>${visualRepr}</td>
+                            <td>${visualRepresentation}</td>
                         `;
                         tableBody.appendChild(tr);
                     }
@@ -130,25 +107,21 @@
             });
         }
 
-        function formatFriendlyDateRange(dateRange) {
-            const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-            const [start, end] = dateRange.split(" - ");
+        function formatWeek(week) {
+            const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            const [start, end] = week.split(' - ');
             const startDate = new Date(start);
             const endDate = new Date(end);
-
             return `${months[startDate.getMonth()]} ${startDate.getDate()} - ${months[endDate.getMonth()]} ${endDate.getDate()}`;
         }
 
-        function getVisualRepresentation(ads) {
-            const maxAds = 100;
-            const percentage = (ads / maxAds) * 100;
-
-            return `
-                <div class="bar">
-                    <div class="fill" style="width: ${percentage}%;"></div>
-                </div>
-            `;
+        function getVisualRepresentation(count) {
+            const dots = ['🔴', '🟡', '🟢', '🔵', '🟣', '🔶'];
+            const maxCount = 60;  // Assume maximum ads uploaded in a week is 60 for visualization purposes
+            const dotCount = Math.ceil((count / maxCount) * dots.length);
+            return dots.slice(0, dotCount).join('');
         }
     </script>
 </body>
+
 </html>
