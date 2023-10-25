@@ -4,132 +4,171 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ads Data Visualization</title>
+    <title>CSV Upload Analysis</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
         }
-        table,
-        th,
-        td {
-            border: 1px solid black;
+
+        h2, h3, h4 {
+            color: #333;
+        }
+
+        input[type="file"],
+        button {
+            padding: 10px 15px;
+            margin: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #007BFF;
+            color: #FFF;
+        }
+
+        table {
+            width: 100%;
+            margin: 20px 0;
             border-collapse: collapse;
+            background-color: #fff;
         }
-        th,
-        td {
-            padding: 8px;
-            text-align: left;
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
         }
+
+        th {
+            background-color: #333;
+            color: #fff;
+        }
+
+        .bar {
+            height: 20px;
+            border-radius: 10px;
+            position: relative;
+            background-color: #eee;
+        }
+
+        .segment {
+            height: 100%;
+            float: left;
+            background-color: #007BFF;
+            transition: width 0.5s;
+            border-radius: 10px 0 0 10px;
+        }
+
+        #publisherName {
+            color: #007BFF;
+        }
+
     </style>
 </head>
 
 <body>
 
-    <h2>Ads Data Visualization</h2>
+<h2>Upload for <span id="publisherName"></span></h2>
+<input type="file" id="upload" accept=".csv">
+<button onclick="handleFile()">Analyze</button>
 
-    <input type="file" id="csvFileInput" onchange="processData()">
+<h4><span id="monthName"></span> Breakdown</h4>
+<p><strong>Total ads for the month:</strong> <span id="totalAds"></span></p>
+<table id="weeklyBreakdown">
+    <tr>
+        <th>Week Date Range</th>
+        <th>Ads Uploaded</th>
+        <th>Visual Representation</th>
+    </tr>
+</table>
+<p><strong>Day(s) with highest upload frequency:</strong> <span id="highFrequencyDays"></span></p>
 
-    <h3>Weekly Breakdown</h3>
-    <table id="weeklyResultsTable">
-        <thead>
-            <tr>
-                <th>Week Date Range</th>
-                <th>Ads Uploaded</th>
-                <th>Visual Representation</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-
-    <h3>Daily Breakdown</h3>
-    <table id="dailyResultsTable">
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Ads Uploaded</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
-    <script>
-        function processData() {
-            const fileInput = document.getElementById('csvFileInput');
-            const file = fileInput.files[0];
-
-            if (!file) return;
-
-            Papa.parse(file, {
-                header: true,
-                skipEmptyLines: true,
-                complete: function(results) {
-                    const data = results.data;
-
-                    let adsCountByDate = {};
-                    for (const row of data) {
-                        const date = row['K'];
-                        if (date) {
-                            adsCountByDate[date] = (adsCountByDate[date] || 0) + 1;
-                        }
-                    }
-
-                    displayDailyResults(adsCountByDate);
-                    displayWeeklyResults(adsCountByDate);
-                }
-            });
-        }
-
-        function displayDailyResults(data) {
-            const tableBody = document.getElementById('dailyResultsTable').querySelector('tbody');
-            tableBody.innerHTML = '';
-
-            const sortedDates = Object.keys(data).sort((a, b) => new Date(a) - new Date(b));
-            for (const date of sortedDates) {
-                const row = tableBody.insertRow();
-                row.insertCell().textContent = formatDate(new Date(date));
-                row.insertCell().textContent = data[date];
+<script>
+    function handleFile() {
+        const file = document.getElementById('upload').files[0];
+        Papa.parse(file, {
+            complete: function (results) {
+                analyzeData(results.data);
             }
+        });
+    }
+
+    function analyzeData(data) {
+        const publisherName = data[1][0];
+        let validRows = data.slice(1).filter(row => row[10] && Date.parse(row[10]));
+        let dates = validRows.map(row => new Date(row[10]));
+
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        document.getElementById('monthName').innerText = monthNames[dates[0].getMonth()];
+
+        let weeklyData = {};
+
+        dates.forEach(date => {
+            let weekStart = startOfWeek(date);
+            let weekEnd = endOfWeek(date);
+            let weekKey = `${monthNames[weekStart.getMonth()]} ${weekStart.getDate()} - ${monthNames[weekEnd.getMonth()]} ${weekEnd.getDate()}`;
+            weeklyData[weekKey] = (weeklyData[weekKey] || 0) + 1;
+        });
+
+        let dayCounts = {};
+        dates.forEach(date => {
+            let day = date.toLocaleString('en-US', { weekday: 'long' });
+            dayCounts[day] = (dayCounts[day] || 0) + 1;
+        });
+
+        let maxDayCount = Math.max(...Object.values(dayCounts));
+        let highFreqDays = Object.keys(dayCounts).filter(day => dayCounts[day] === maxDayCount);
+
+        // Display results
+        document.getElementById('publisherName').innerText = publisherName;
+        document.getElementById('totalAds').innerText = validRows.length;
+
+        let table = document.getElementById('weeklyBreakdown');
+        let rowCount = table.rows.length;
+        for (let i = rowCount - 1; i > 0; i--) {
+            table.deleteRow(i);
         }
 
-        function displayWeeklyResults(data) {
-            const tableBody = document.getElementById('weeklyResultsTable').querySelector('tbody');
-            tableBody.innerHTML = '';
+        Object.keys(weeklyData).forEach(week => {
+            let row = table.insertRow(-1);
+            let cell1 = row.insertCell(0);
+            let cell2 = row.insertCell(1);
+            let cell3 = row.insertCell(2);
 
-            const sortedDates = Object.keys(data).sort((a, b) => new Date(a) - new Date(b));
+            cell1.innerHTML = week;
+            cell2.innerHTML = weeklyData[week];
 
-            for (let i = 0; i < sortedDates.length; i += 7) {
-                const weekStart = new Date(sortedDates[i]);
-                const weekEnd = new Date(weekStart);
-                weekEnd.setDate(weekEnd.getDate() + 6);
+            let bar = document.createElement('div');
+            bar.className = 'bar';
+            let segment = document.createElement('div');
+            segment.className = 'segment';
+            segment.style.width = (weeklyData[week] / validRows.length * 100) + '%';
+            bar.appendChild(segment);
+            cell3.appendChild(bar);
+        });
 
-                let adsUploadedThisWeek = 0;
-                for (let j = 0; j < 7 && i + j < sortedDates.length; j++) {
-                    adsUploadedThisWeek += data[sortedDates[i + j]];
-                }
+        document.getElementById('highFrequencyDays').innerText = highFreqDays.join(', ');
+    }
 
-                const visualRepresentation = getVisualRepresentation(adsUploadedThisWeek);
-                const row = tableBody.insertRow();
-                row.insertCell().textContent = `${formatDate(weekStart)} - ${formatDate(weekEnd)}`;
-                row.insertCell().textContent = adsUploadedThisWeek;
-                row.insertCell().innerHTML = visualRepresentation;
-            }
-        }
+    function startOfWeek(date) {
+        let result = new Date(date);
+        result.setDate(result.getDate() - result.getDay());
+        return result;
+    }
 
-        function formatDate(date) {
-            const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-            return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
-        }
-
-        function getVisualRepresentation(count) {
-            const colors = ['🔴', '🟡', '🟢', '🔵', '🟣', '🔶'];
-            let representation = '';
-            for (let i = 0; i < count && i < colors.length; i++) {
-                representation += colors[i];
-            }
-            return representation;
-        }
-    </script>
+    function endOfWeek(date) {
+        let result = new Date(date);
+        result.setDate(result.getDate() + (6 - result.getDay()));
+        return result;
+    }
+</script>
 
 </body>
 
