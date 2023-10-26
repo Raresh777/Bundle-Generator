@@ -90,6 +90,15 @@
 </table>
 <p><strong>Day(s) with highest upload frequency:</strong> <span id="highFrequencyDays"></span></p>
 
+<h4>Daily Breakdown</h4>
+<table id="dailyBreakdownTable">
+    <tr>
+        <th>Day</th>
+        <th>Percentage of Total Ads</th>
+        <th>Visual Representation</th>
+    </tr>
+</table>
+
 <script>
     function handleFile() {
         const file = document.getElementById('upload').files[0];
@@ -109,7 +118,6 @@
         document.getElementById('monthName').innerText = monthNames[dates[0].getMonth()];
 
         let weeklyData = {};
-
         dates.forEach(date => {
             let weekStart = startOfWeek(date);
             let weekEnd = endOfWeek(date);
@@ -155,6 +163,46 @@
         });
 
         document.getElementById('highFrequencyDays').innerText = highFreqDays.join(', ');
+
+        displayDailyBreakdown(validRows, dayCounts);
+    }
+
+    function displayDailyBreakdown(validRows, dayCounts) {
+        // Calculate daily percentages
+        let totalAdsCount = validRows.length;
+        let dayPercentages = {
+            'Saturday': (dayCounts['Saturday'] || 0) / totalAdsCount * 100,
+            'Tuesday': (dayCounts['Tuesday'] || 0) / totalAdsCount * 100,
+            'Thursday': (dayCounts['Thursday'] || 0) / totalAdsCount * 100
+        };
+
+        // Display daily percentages in a table with visual representation
+        let table = document.getElementById('dailyBreakdownTable');
+        
+        // Remove previous rows
+        let rowCount = table.rows.length;
+        for (let i = rowCount - 1; i > 0; i--) {
+            table.deleteRow(i);
+        }
+        
+        // Add data to table
+        Object.keys(dayPercentages).forEach(day => {
+            let row = table.insertRow(-1);
+            let cell1 = row.insertCell(0);
+            let cell2 = row.insertCell(1);
+            let cell3 = row.insertCell(2);
+
+            cell1.innerHTML = day;
+            cell2.innerHTML = `${dayPercentages[day].toFixed(2)}%`;
+
+            let bar = document.createElement('div');
+            bar.className = 'bar';
+            let segment = document.createElement('div');
+            segment.className = 'segment';
+            segment.style.width = `${dayPercentages[day]}%`;
+            bar.appendChild(segment);
+            cell3.appendChild(bar);
+        });
     }
 
     function startOfWeek(date) {
@@ -168,8 +216,8 @@
         result.setDate(result.getDate() + (6 - result.getDay()));
         return result;
     }
-</script>
 
+</script>
 </body>
 
 </html>
