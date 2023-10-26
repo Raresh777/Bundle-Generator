@@ -188,51 +188,51 @@
     }
 
     function displayDailyBreakdown(validRows, dayCounts) {
-        // Calculate daily percentages
-        let totalAdsCount = validRows.length;
-        let dayPercentages = {
-            'Saturday': (dayCounts['Saturday'] || 0) / totalAdsCount * 100,
-            'Tuesday': (dayCounts['Tuesday'] || 0) / totalAdsCount * 100,
-            'Thursday': (dayCounts['Thursday'] || 0) / totalAdsCount * 100
-        };
+        const totalAdsCount = validRows.length;
+        const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-        // Display daily percentages in a table with visual representation
-        let table = document.getElementById('dailyBreakdownTable');
+        const dailyBreakdown = daysOfWeek.map(day => {
+            return {
+                day: day,
+                count: dayCounts[day] || 0,
+                percentage: ((dayCounts[day] || 0) / totalAdsCount) * 100
+            };
+        });
+
+        const table = document.getElementById('dailyBreakdownTable');
         
-        // Remove previous rows
-        let rowCount = table.rows.length;
-        for (let i = rowCount - 1; i > 0; i--) {
-            table.deleteRow(i);
+        // Clear previous rows
+        while (table.rows.length > 1) {
+            table.deleteRow(1);
         }
-        
-        // Add data to table
-        Object.keys(dayPercentages).forEach(day => {
-            let row = table.insertRow(-1);
-            let cell1 = row.insertCell(0);
-            let cell2 = row.insertCell(1);
-            let cell3 = row.insertCell(2);
 
-            cell1.innerHTML = day;
-            cell2.innerHTML = `${dayPercentages[day].toFixed(2)}%`;
+        dailyBreakdown.forEach(data => {
+            const row = table.insertRow(-1);
+            const cell1 = row.insertCell(0);
+            const cell2 = row.insertCell(1);
+            const cell3 = row.insertCell(2);
 
-            let bar = document.createElement('div');
+            cell1.innerHTML = data.day;
+            cell2.innerHTML = `${data.percentage.toFixed(2)}%`;
+
+            const bar = document.createElement('div');
             bar.className = 'bar';
-            let segment = document.createElement('div');
+            const segment = document.createElement('div');
             segment.className = 'segment';
-            segment.style.width = `${dayPercentages[day]}%`;
+            segment.style.width = `${data.percentage}%`;
             bar.appendChild(segment);
             cell3.appendChild(bar);
         });
     }
 
     function startOfWeek(date) {
-        let result = new Date(date);
+        const result = new Date(date);
         result.setDate(result.getDate() - result.getDay());
         return result;
     }
 
     function endOfWeek(date) {
-        let result = new Date(date);
+        const result = new Date(date);
         result.setDate(result.getDate() + (6 - result.getDay()));
         return result;
     }
