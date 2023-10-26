@@ -8,68 +8,87 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #111;
             margin: 0;
             padding: 0;
+            color: #ddd;
         }
 
         h2, h3, h4 {
-            color: #333;
+            color: #f39c12;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-shadow: 2px 2px 4px #000;
         }
 
         input[type="file"],
         button {
-            padding: 10px 15px;
+            padding: 12px 20px;
             margin: 10px;
-            border: none;
-            border-radius: 5px;
+            border: 2px solid #f39c12;
+            border-radius: 25px;
+            background: transparent;
+            color: #f39c12;
             cursor: pointer;
-            transition: background-color 0.3s;
+            font-size: 16px;
+            outline: none;
+            transition: background-color 0.3s, transform 0.3s;
         }
 
         button:hover {
-            background-color: #007BFF;
-            color: #FFF;
+            background-color: #f39c12;
+            color: #111;
+            transform: scale(1.05);
         }
 
         table {
             width: 100%;
             margin: 20px 0;
             border-collapse: collapse;
-            background-color: #fff;
+            background-color: rgba(0,0,0,0.7);
+            border-radius: 15px;
+            overflow: hidden;
         }
 
         th, td {
-            border: 1px solid #ddd;
-            padding: 10px;
+            border: 1px solid #444;
+            padding: 8px;
             text-align: center;
         }
 
         th {
-            background-color: #333;
-            color: #fff;
+            background-color: #222;
+            font-weight: 600;
         }
 
         .bar {
             height: 20px;
             border-radius: 10px;
             position: relative;
-            background-color: #eee;
+            background-color: #333;
+            overflow: hidden;
         }
 
         .segment {
             height: 100%;
             float: left;
-            background-color: #007BFF;
+            background: linear-gradient(45deg, #f39c12, #e74c3c);
             transition: width 0.5s;
-            border-radius: 10px 0 0 10px;
         }
 
         #publisherName {
-            color: #007BFF;
+            color: #e74c3c;
         }
 
+        /* Making tables responsive */
+        @media only screen and (max-width: 600px) {
+            table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+        }
     </style>
 </head>
 
@@ -100,6 +119,7 @@
 </table>
 
 <script>
+    
     function handleFile() {
         const file = document.getElementById('upload').files[0];
         Papa.parse(file, {
